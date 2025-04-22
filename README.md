@@ -2,7 +2,12 @@
 
 **Edu-Tutors**, a dynamic, real-time chat application built with React.js that simulates AI-powered educational discussions. This application is designed as part of a **Coding Exercise** to showcase proficiency in modern web technologies and frameworks.
 
-![Screenshot](https://github.com/VIKASRAPARTHI/Edu-Tutors/blob/main/src/assets/screenshot.png)
+<p align="center">
+  <img src="static/Screenshot3.png" alt="Main Screenshot" width="18%" height="50%"/>
+  <img src="static/ScreenShot1.png" alt="Same Screenshot Again" width="65%" />
+  <img src="static/Screenshot2.png" alt="Same Screenshot Again" width="16%" />
+  
+</p>
 
 ## Overview
 
@@ -27,37 +32,43 @@ Edu-Tutors leverages the power of modern frontend technologies to deliver a seam
 
 ## Project Structure
 ```bash
-Edu-Tutors/
+Auro-Edu-Chat/
 │
-├── public/                      # Static assets (images, icons, etc.)
+├── public/                             # Static assets (e.g., favicon, HTML images)
 │
-├── src/                         # Source code directory
-│   ├── assets/                  # Project images and icons
+├── source/                             # Main source folder
+│   ├── data/                           # Global state stores (e.g., Zustand)
+│   │   ├── appearanceStore.js          # Theme & appearance state
+│   │   ├── messageStore.js             # Chat message state
+│   │   └── userStore.js                # User authentication/profile state
 │
-│   ├── components/              # Reusable UI components
-│   │   ├── ChatComponent.jsx    # Main chat message UI
-│   │   ├── Navbar.jsx           # Top navigation bar
-│   │   ├── ProfileSettings.jsx  # User profile and settings panel
-│   │   └── SideBar.jsx          # Sidebar for navigation or channels
+│   ├── elements/                       # Reusable UI components
+│   │   ├── Messagelnterface.jsx        # Component to display messages
+│   │   ├── SidePanel.jsx               # Sidebar for navigation
+│   │   ├── TopBar.jsx                  # Top navigation bar
+│   │   └── UserProfiIe.jsx             # User profile panel
 │
-│   ├── Pages/                   # Application screens or views
-│   │   └── ChatScreen.jsx       # Main chat screen layout
+│   ├── pages/                          # Application views/pages
+│   │   ├── Login.jsx                   # Login screen
+│   │   └── MainView.jsx                # Main chat screen layout
 │
-│   ├── store/                   # Zustand/Redux state management
-│   │   ├── chatStore.js         # Store for chat-related state
-│   │   └── themeStore.js        # Store for theme (dark/light mode)
+│   ├── utilities/                      # Utility functions and API logic
+│   │   └── services.js                 # API setup and helpers (OpenRouter, etc.)
 │
-│   ├── utils/                   # Utility functions and API logic
-│   │   └── apis.js              # API configuration and helpers
+│   ├── App.jsx                         # Root component for the React app
+│   ├── App.css                         # Component-level styles
+│   ├── global.css                      # Global/custom styles
+│   └── index.jsx                       # Entry point to the React app
 │
-│   ├── App.jsx                  # Root React component
-│   ├── App.css                  # Global styles
-│   ├── index.css                # TailwindCSS base & custom styles
-│   └── main.jsx                 # Entry point to the React app
+├── static/                             # Any static files or public-facing data
 │
-├── index.html                   # HTML template for the app
-├── .gitignore                   # Files and folders to ignore in Git
-├── eslint.config.js             # ESLint configuration
+├── .env.example                        # Environment variables (e.g., API keys)
+├── .gitignore                          # Files/folders to ignore in Git
+├── eslint.config.js                    # ESLint configuration
+├── index.html                          # Main HTML template
+├── package-lock.json                   # Auto-generated lockfile for npm
+├── package.json                        # Project metadata and dependencies
+
 ```
 
 ## 🛠️ Getting Started

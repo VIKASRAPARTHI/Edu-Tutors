@@ -3,9 +3,9 @@
 **Edu-Tutors**, a dynamic, real-time chat application built with React.js that simulates AI-powered educational discussions. This application is designed as part of a **Coding Exercise** to showcase proficiency in modern web technologies and frameworks.
 
 <p align="center">
-  <img src="static/Screenshot3.png" alt="Main Screenshot" width="18%" height="50%"/>
-  <img src="static/ScreenShot1.png" alt="Same Screenshot Again" width="65%" />
-  <img src="static/Screenshot2.png" alt="Same Screenshot Again" width="16%" />
+  <img src="static/Screenshot3.png" alt="Main Screenshot" width="15%" height="50%"/>
+  <img src="static/ScreenShot1.png" alt="Same Screenshot Again" width="55%" />
+  <img src="static/Screenshot2.png" alt="Same Screenshot Again" width="12%" />
   
 </p>
 

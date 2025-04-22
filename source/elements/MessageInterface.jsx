@@ -2,8 +2,8 @@ import { CommandLineIcon, PaperAirplaneIcon } from "@heroicons/react/24/solid";
 import axios from "axios";
 import axiosRetry from "axios-retry";
 import React, { useEffect, useRef, useState } from "react";
-import useChatStore from "../store/chatStore";
-import useThemeStore from "../store/themeStore";
+import useMessageStore from "../data/messageStore";
+import useAppearanceStore from "../data/appearanceStore";
 
 // Configure axios retry
 axiosRetry(axios, {
@@ -14,31 +14,31 @@ axiosRetry(axios, {
 });
 
 // Create a cancelable axios instance
-const axiosInstance = axios.create();
+const apiClient = axios.create();
 
-const formatTime = (date) => {
+const formatTimestamp = (date) => {
   return new Intl.DateTimeFormat("en-US", {
     hour: "2-digit",
     minute: "2-digit",
   }).format(date);
 };
 
-const ChatBubble = ({ message, isDarkMode }) => {
-  const isUser = message.role === "user";
-  const time = message.timestamp
-    ? formatTime(new Date(message.timestamp))
-    : formatTime(new Date());
+const MessageBubble = ({ message, isNightMode }) => {
+  const isUserMessage = message.role === "user";
+  const timestamp = message.timestamp
+    ? formatTimestamp(new Date(message.timestamp))
+    : formatTimestamp(new Date());
 
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"} group`}>
-      <div className="flex flex-col max-w-[80%] gap-1">
+    <div className={`flex ${isUserMessage ? "justify-end" : "justify-start"} group`}>
+      <div className="flex flex-col max-w-[95%] md:max-w-[80%] gap-1">
         <div
-          className={`p-3 rounded-xl shadow-sm ${
-            isUser
-              ? isDarkMode
+          className={`p-2 md:p-3 rounded-xl shadow-sm text-sm md:text-base ${
+            isUserMessage
+              ? isNightMode
                 ? "bg-gradient-to-br from-violet-600 to-indigo-600 text-white rounded-br-none"
                 : "bg-gradient-to-br from-violet-500 to-indigo-500 text-white rounded-br-none"
-              : isDarkMode
+              : isNightMode
               ? "bg-gray-800 text-gray-100 rounded-bl-none border border-gray-700"
               : "bg-white text-gray-800 rounded-bl-none border border-gray-100 shadow-sm"
           }`}
@@ -47,21 +47,21 @@ const ChatBubble = ({ message, isDarkMode }) => {
         </div>
         <p
           className={`text-xs opacity-0 group-hover:opacity-100 transition-opacity ${
-            isDarkMode ? "text-gray-400" : "text-gray-600"
+            isNightMode ? "text-gray-400" : "text-gray-600"
           }`}
         >
-          {time}
+          {timestamp}
         </p>
       </div>
     </div>
   );
 };
 
-const TypingIndicator = ({ isDarkMode }) => (
+const LoadingIndicator = ({ isNightMode }) => (
   <div className="flex justify-start">
     <div
       className={`p-3 rounded-lg ${
-        isDarkMode
+        isNightMode
           ? "bg-gray-800 border border-gray-700"
           : "bg-white border border-gray-100 shadow-sm"
       }`}
@@ -69,7 +69,7 @@ const TypingIndicator = ({ isDarkMode }) => (
       <div className="flex gap-2 items-center">
         <CommandLineIcon
           className={`h-4 w-4 ${
-            isDarkMode ? "text-violet-400" : "text-violet-500"
+            isNightMode ? "text-violet-400" : "text-violet-500"
           }`}
         />
         <div className="flex gap-1">
@@ -77,7 +77,7 @@ const TypingIndicator = ({ isDarkMode }) => (
             <div
               key={i}
               className={`w-2 h-2 rounded-full ${
-                isDarkMode ? "bg-violet-400" : "bg-violet-500"
+                isNightMode ? "bg-violet-400" : "bg-violet-500"
               } animate-bounce`}
               style={{ animationDelay: `${i * 0.2}s` }}
             />
@@ -88,72 +88,72 @@ const TypingIndicator = ({ isDarkMode }) => (
   </div>
 );
 
-const ChatComponent = () => {
-  const [input, setInput] = useState("");
-  const messagesEndRef = useRef(null);
-  const abortControllerRef = useRef(null);
-  const isDarkMode = useThemeStore((state) => state.isDarkMode);
+const MessageInterface = () => {
+  const [userInput, setUserInput] = useState("");
+  const messageListEndRef = useRef(null);
+  const requestCancellerRef = useRef(null);
+  const isNightMode = useAppearanceStore((state) => state.isNightMode);
   const {
-    messages,
-    loading,
-    setLoading,
-    addMessage,
-    currentSessionId,
-    createNewSession,
-  } = useChatStore();
-  const [apiError, setApiError] = useState(false);
+    messageList,
+    isLoading,
+    setIsLoading,
+    addNewMessage,
+    activeSessionId,
+    createNewConversation,
+  } = useMessageStore();
+  const [hasApiError, setHasApiError] = useState(false);
 
   // Create new session if none exists
   useEffect(() => {
-    if (!currentSessionId) {
-      createNewSession();
+    if (!activeSessionId) {
+      createNewConversation();
     }
 
     // Clean up function
     return () => {
       // Cancel any pending requests
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+      if (requestCancellerRef.current) {
+        requestCancellerRef.current.abort();
       }
       // Reset loading state
-      setLoading(false);
+      setIsLoading(false);
     };
-  }, [currentSessionId, createNewSession, setLoading]);
+  }, [activeSessionId, createNewConversation, setIsLoading]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    messageListEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messageList]);
 
   // Debug logging for loading state
   useEffect(() => {
-    console.log("Loading state:", loading);
-  }, [loading]);
+    console.log("Loading state:", isLoading);
+  }, [isLoading]);
 
-  const handleSubmit = async (e) => {
+  const processSubmission = async (e) => {
     e.preventDefault();
-    if (!input.trim() || loading) return;
+    if (!userInput.trim() || isLoading) return;
 
     // Cancel previous request if exists
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
+    if (requestCancellerRef.current) {
+      requestCancellerRef.current.abort();
     }
 
     // Create new abort controller
-    abortControllerRef.current = new AbortController();
+    requestCancellerRef.current = new AbortController();
 
     // Add user message
-    addMessage({ role: "user", content: input });
-    setLoading(true);
-    setInput("");
-    setApiError(false);
+    addNewMessage({ role: "user", content: userInput });
+    setIsLoading(true);
+    setUserInput("");
+    setHasApiError(false);
 
     try {
-      const res = await axiosInstance.post(
+      const res = await apiClient.post(
         "https://openrouter.ai/api/v1/chat/completions",
         {
           model: "deepseek/deepseek-chat-v3-0324:free",
-          messages: [...messages, { role: "user", content: input }],
+          messages: [...messageList, { role: "user", content: userInput }],
         },
         {
           headers: {
@@ -161,10 +161,10 @@ const ChatComponent = () => {
               import.meta.env.VITE_OPENROUTER_API_KEY || ""
             }`,
             "HTTP-Referer": "http://localhost:3000",
-            "X-Title": "AuroEdu",
+            "X-Title": "LearnWise",
             "Content-Type": "application/json",
           },
-          signal: abortControllerRef.current.signal,
+          signal: requestCancellerRef.current.signal,
         }
       );
 
@@ -172,7 +172,7 @@ const ChatComponent = () => {
       if (res.data && res.data.choices && res.data.choices.length > 0) {
         const aiResponse =
           res.data.choices[0].message?.content || "No response found.";
-        addMessage({ role: "assistant", content: aiResponse });
+        addNewMessage({ role: "assistant", content: aiResponse });
       } else {
         throw new Error("Invalid API response format");
       }
@@ -180,8 +180,8 @@ const ChatComponent = () => {
       // Only add error message if request wasn't cancelled
       if (!axios.isCancel(error)) {
         console.error("API Error:", error.message);
-        setApiError(true);
-        addMessage({
+        setHasApiError(true);
+        addNewMessage({
           role: "assistant",
           content:
             "Sorry, I encountered an error while processing your request. Please check your API key and try again.",
@@ -189,21 +189,21 @@ const ChatComponent = () => {
       }
     } finally {
       // Reset loading state and controller
-      setLoading(false);
-      abortControllerRef.current = null;
+      setIsLoading(false);
+      requestCancellerRef.current = null;
     }
   };
 
   return (
     <div
       className={`flex-1 flex flex-col h-full ${
-        isDarkMode
+        isNightMode
           ? "bg-gray-900 bg-gradient-to-br from-gray-900 to-gray-800"
           : "bg-gray-50 bg-gradient-to-br from-gray-50 to-white"
       }`}
     >
       {/* API Error Banner */}
-      {apiError && (
+      {hasApiError && (
         <div className="bg-red-500 text-white px-4 py-2 text-sm shadow-md">
           API error occurred. Please check your console and verify your API key
           is correct.
@@ -212,22 +212,22 @@ const ChatComponent = () => {
 
       {/* Chat Messages */}
       <div className="flex-1 overflow-y-auto mb-2 space-y-6 p-4 md:p-6 custom-scrollbar">
-        {messages.length === 0 && (
+        {messageList.length === 0 && (
           <div className="flex items-center justify-center h-full">
             <div
               className="text-center max-w-md mx-auto p-8 rounded-2xl shadow-lg bg-opacity-80 backdrop-blur-sm
-              ${isDarkMode ? 'bg-gray-800/60 border border-gray-700' : 'bg-white/60 border border-gray-200'}"
+              ${isNightMode ? 'bg-gray-800/60 border border-gray-700' : 'bg-white/60 border border-gray-200'}"
             >
               <div className="mb-6 flex justify-center">
                 <div
                   className={`p-5 rounded-full ${
-                    isDarkMode ? "bg-violet-900/30" : "bg-violet-100"
+                    isNightMode ? "bg-violet-900/30" : "bg-violet-100"
                   }`}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className={`h-12 w-12 ${
-                      isDarkMode ? "text-violet-400" : "text-violet-600"
+                      isNightMode ? "text-violet-400" : "text-violet-600"
                     }`}
                     fill="none"
                     viewBox="0 0 24 24"
@@ -244,14 +244,14 @@ const ChatComponent = () => {
               </div>
               <h3
                 className={`text-xl font-bold mb-3 ${
-                  isDarkMode ? "text-white" : "text-gray-800"
+                  isNightMode ? "text-white" : "text-gray-800"
                 }`}
               >
-                Welcome to EduTutor
+                Welcome to Edu Tutor
               </h3>
               <p
                 className={`mb-6 ${
-                  isDarkMode ? "text-gray-300" : "text-gray-600"
+                  isNightMode ? "text-gray-300" : "text-gray-600"
                 }`}
               >
                 Your AI-powered learning assistant is ready to help with any
@@ -259,7 +259,7 @@ const ChatComponent = () => {
               </p>
               <div
                 className={`flex flex-col gap-2 text-left ${
-                  isDarkMode ? "text-gray-300" : "text-gray-600"
+                  isNightMode ? "text-gray-300" : "text-gray-600"
                 }`}
               >
                 <p className="flex items-center">
@@ -278,28 +278,28 @@ const ChatComponent = () => {
           </div>
         )}
 
-        {messages.map((message, index) => (
-          <ChatBubble key={index} message={message} isDarkMode={isDarkMode} />
+        {messageList.map((message, index) => (
+          <MessageBubble key={index} message={message} isNightMode={isNightMode} />
         ))}
 
-        {loading && <TypingIndicator isDarkMode={isDarkMode} />}
+        {isLoading && <LoadingIndicator isNightMode={isNightMode} />}
 
-        <div ref={messagesEndRef} />
+        <div ref={messageListEndRef} />
       </div>
 
       {/* Message Input Form */}
       <div
         className={`px-6 py-4 border-t mt-auto z-10 ${
-          isDarkMode
+          isNightMode
             ? "border-gray-800 bg-gray-900/95 backdrop-blur-md"
             : "border-gray-200 bg-white/95 backdrop-blur-md shadow-md"
         }`}
       >
-        <form onSubmit={handleSubmit} className="flex gap-3 max-w-4xl mx-auto">
+        <form onSubmit={processSubmission} className="flex gap-2 md:gap-3 max-w-4xl mx-auto">
           <div className="flex-1 min-w-0 relative shadow-lg">
             <div
               className={`absolute left-4 top-1/2 transform -translate-y-1/2 ${
-                isDarkMode ? "text-gray-400" : "text-gray-500"
+                isNightMode ? "text-gray-400" : "text-gray-500"
               }`}
             >
               <svg
@@ -321,19 +321,19 @@ const ChatComponent = () => {
               </svg>
             </div>
             <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
+              value={userInput}
+              onChange={(e) => setUserInput(e.target.value)}
               placeholder="Ask me anything about your studies..."
-              className={`w-full pl-12 pr-4 py-4 border rounded-xl focus:outline-none focus:ring-2 focus:ring-opacity-50 ${
-                isDarkMode
+              className={`w-full pl-10 md:pl-12 pr-4 py-3 md:py-4 border rounded-xl focus:outline-none focus:ring-2 focus:ring-opacity-50 ${
+                isNightMode
                   ? "bg-gray-800 text-gray-100 border-gray-700 focus:ring-violet-500 placeholder-gray-400"
                   : "bg-white text-gray-900 border-gray-200 focus:ring-violet-500 placeholder-gray-500"
               } text-base`}
             />
-            {input.length > 0 && (
+            {userInput.length > 0 && (
               <span
                 className={`absolute right-4 top-1/2 transform -translate-y-1/2 text-xs font-medium px-2 py-1 rounded-md ${
-                  isDarkMode
+                  isNightMode
                     ? "bg-gray-700 text-gray-300"
                     : "bg-gray-200 text-gray-600"
                 } transition-opacity`}
@@ -347,13 +347,13 @@ const ChatComponent = () => {
           <div className="relative group">
             <button
               type="submit"
-              disabled={loading || !input.trim()}
-              className={`flex items-center justify-center p-4 rounded-xl w-14 h-14 transition-all transform active:scale-95 shadow-lg ${
-                loading || !input.trim()
-                  ? isDarkMode
+              disabled={isLoading || !userInput.trim()}
+              className={`flex items-center justify-center p-3 md:p-4 rounded-xl w-12 h-12 md:w-14 md:h-14 transition-all transform active:scale-95 shadow-lg ${
+                isLoading || !userInput.trim()
+                  ? isNightMode
                     ? "bg-gray-700 cursor-not-allowed text-gray-500"
                     : "bg-gray-200 cursor-not-allowed text-gray-400"
-                  : isDarkMode
+                  : isNightMode
                   ? "bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white"
                   : "bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-400 hover:to-indigo-400 text-white"
               }`}
@@ -370,4 +370,4 @@ const ChatComponent = () => {
   );
 };
 
-export default ChatComponent;
+export default MessageInterface;
